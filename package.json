@@ -1,0 +1,11 @@
+{
+  "name": "preproom-claude",
+  "private": true,
+  "type": "module",
+  "description": "Prep Room for Claude Code. The plugin needs no install step; this file only names the scripts.",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "build-engine": "node scripts/build-engine.mjs ../preproom"
+  }
+}

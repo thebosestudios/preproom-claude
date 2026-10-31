@@ -1,0 +1,17 @@
+{
+  "name": "preproom",
+  "owner": {
+    "name": "Prep Room",
+    "url": "https://preproom.ai"
+  },
+  "metadata": {
+    "description": "Prep Room's interview practice for Claude Code."
+  },
+  "plugins": [
+    {
+      "name": "preproom",
+      "source": "./",
+      "description": "Interview practice in Claude Code: AI-assisted engineering, system design and coding questions as files in your project, run on your own machine, with an assisted round and a mock interviewer."
+    }
+  ]
+}

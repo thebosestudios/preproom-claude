@@ -1,0 +1,6 @@
+Copyright (c) 2026 Prep Room. All rights reserved.
+
+This software is proprietary. It is made available for use with the Prep Room
+service and may not be copied, modified, distributed or reverse engineered
+except as permitted by the terms at https://preproom.ai/legal or by applicable
+law.

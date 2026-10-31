@@ -1,0 +1,14 @@
+{
+  "name": "preproom",
+  "version": "1.0.0",
+  "description": "Interview practice in Claude Code from Prep Room: questions in AI-assisted engineering, system design and coding, set up as files in your project. Run the examples on your own machine, practice an assisted round with Claude, and take your answer to preproom.ai for the hidden checks.",
+  "author": {
+    "name": "Prep Room",
+    "url": "https://preproom.ai"
+  },
+  "homepage": "https://preproom.ai",
+  "repository": "https://github.com/thebosestudios/preproom-claude",
+  "license": "SEE LICENSE IN LICENSE.txt",
+  "keywords": ["interview", "interview-prep", "coding-interview", "system-design", "ai-assisted-engineering", "practice"],
+  "types": "./types/index.d.ts"
+}

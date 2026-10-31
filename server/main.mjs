@@ -155,7 +155,7 @@ const TOOLS = [
       }
       if (state.mode === 'solo' || state.mode === 'mock') lines.push(`Do not edit ${state.file} unless they hand it back.`)
       if (state.mode === 'round') lines.push('In this round you are their assistant: write what they ask for, and let them decide and check.')
-      return { text: lines.join('\n'), data: { state } }
+      return lines.join('\n')
     },
   },
   {
@@ -171,22 +171,22 @@ const TOOLS = [
       // An untouched starter has nothing to run, except in Review the AI's code, where the
       // starter is the assistant's version and running it is the first step.
       if (q.kind === 'fn' && q.format !== "Review the AI's code" && code.trim() === starterOf(q, state.language).trim()) {
-        return { text: `${state.file} still holds the starter. Write an answer first, then run it.`, data: { id: q.id, status: 'starter' } }
+        return `${state.file} still holds the starter. Write an answer first, then run it.`
       }
       const r = await runExamples(q, state, code)
       const link = siteLink(q, state, code)
-      let text, data
+      let text, status
       if (r.cannot) {
         text = `${r.cannot} It runs on preproom.ai with this code already in the editor:\n${link}`
-        data = { id: q.id, status: 'elsewhere', url: link }
+        status = 'elsewhere'
       } else if (r.problem) {
         text = `Ran with ${r.where} on this computer.\n\n${r.problem}`
-        data = { id: q.id, status: 'problem', problem: r.problem, where: r.where }
+        status = 'problem'
       } else if (r.sql) {
         text = r.sql.pass
           ? `Ran with ${r.where}. Your rows match the expected result.\n\nThe hidden checks are on preproom.ai. This link opens it with the query in the editor:\n${link}`
           : `Ran with ${r.where}. ${r.sql.note}`
-        data = { id: q.id, status: r.sql.pass ? 'pass' : 'fail', where: r.where }
+        status = r.sql.pass ? 'pass' : 'fail'
       } else {
         const allPass = r.cases.every((c) => c.pass)
         text = `Ran with ${r.where} on this computer.\n\n${fmtCases(r.cases)}`
@@ -194,10 +194,10 @@ const TOOLS = [
         text += allPass
           ? `\n\nThe examples pass. The hidden checks are on preproom.ai, and this link opens the question there with the code in the editor:\n${link}`
           : ''
-        data = { id: q.id, status: allPass ? 'pass' : 'fail', where: r.where, cases: r.cases.map((c) => ({ label: c.label, pass: c.pass })) }
+        status = allPass ? 'pass' : 'fail'
       }
-      await touch(dir, state, { lastRun: { at: Date.now(), status: data.status } })
-      return { text, data }
+      await touch(dir, state, { lastRun: { at: Date.now(), status } })
+      return text
     },
   },
   {
@@ -215,7 +215,7 @@ const TOOLS = [
       const n = Math.min(Math.max(1, a.number ?? shown + 1), hints.length)
       if (c) await touch(c.dir, c.state, { hintsShown: Math.max(shown, n) })
       const last = n === hints.length
-      return { text: `Hint ${n}: ${hints[n - 1]}\n\n${last ? 'That was the last hint.' : 'There is another hint after this one.'}`, data: { id: q.id, number: n, hint: hints[n - 1], last } }
+      return `Hint ${n}: ${hints[n - 1]}\n\n${last ? 'That was the last hint.' : 'There is another hint after this one.'}`
     },
   },
   {
@@ -296,7 +296,7 @@ const TOOLS = [
       const url = siteLink(q, state, code)
       const doing = q.kind === 'written' ? 'compare it with the checklist and the model answer' : q.format === "Review the AI's PR" ? 'match the findings to the planted defects' : 'run the hidden checks'
       await touch(dir, state, { sentAt: Date.now() })
-      return { text: `This link opens the question on preproom.ai with ${state.file} in the editor, ready to ${doing}. A free account keeps the progress.\n\n${url}`, data: { id: q.id, url } }
+      return `This link opens the question on preproom.ai with ${state.file} in the editor, ready to ${doing}. A free account keeps the progress.\n\n${url}`
     },
   },
   {
@@ -307,9 +307,9 @@ const TOOLS = [
     required: ['mode'],
     async run(a) {
       const { state, dir } = await working(a.id)
-      const next = await touch(dir, state, { mode: a.mode, ...(a.mode === 'round' && state.mode !== 'round' ? { startedAt: Date.now() } : {}) })
+      await touch(dir, state, { mode: a.mode, ...(a.mode === 'round' && state.mode !== 'round' ? { startedAt: Date.now() } : {}) })
       const what = { solo: `${state.file} is theirs again, so stay out of it.`, mock: `Stay out of ${state.file} and play the interviewer.`, round: 'You are their assistant now.', open: 'Help however they ask.' }[a.mode]
-      return { text: `Mode: ${MODES[a.mode]}. ${what}`, data: { state: next } }
+      return `Mode: ${MODES[a.mode]}. ${what}`
     },
   },
   {
@@ -323,14 +323,14 @@ const TOOLS = [
       try {
         log = (await readFile(join(dir, '.round', 'log.jsonl'), 'utf8')).split('\n').filter(Boolean).map((l) => JSON.parse(l)).filter((e) => e.at >= state.startedAt)
       } catch {}
-      const next = await touch(dir, state, { mode: 'open', endedAt: Date.now() })
+      await touch(dir, state, { mode: 'open', endedAt: Date.now() })
       const mmss = (ms) => { const s = Math.max(0, Math.round(ms / 1000)); return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}` }
       const used = mmss(Date.now() - state.startedAt)
       const lines = log.map((e) => `${mmss(e.at - state.startedAt)}  ${e.what}`)
       const how = state.mode === 'round'
         ? 'Read the round back in three short notes, each tied to a moment above: Direction (how they framed and ordered the work), Verification (how they proved it: tests, edge cases, runs) and Judgment (what they accepted or turned down from you, and why). Use the model answer and its common mistakes as the reference. Plain and specific, no score.'
         : 'Ask the follow-ups one at a time, then say what they covered, the most important thing they missed, and what an interviewer would ask next. No score.'
-      return { text: `${MODES[state.mode]} on ${q.title} ended after ${used} (the usual time is ${q.minutes} min).\n\n${lines.length ? lines.join('\n') : 'No log was kept here, so read it back from the conversation.'}\n\n${how}`, data: { state: next } }
+      return `${MODES[state.mode]} on ${q.title} ended after ${used} (the usual time is ${q.minutes} min).\n\n${lines.length ? lines.join('\n') : 'No log was kept here, so read it back from the conversation.'}\n\n${how}`
     },
   },
 ]
@@ -354,9 +354,9 @@ async function callTool(name, args) {
   const t = TOOLS.find((x) => x.name === name)
   if (!t) return { content: [{ type: 'text', text: `There is no tool called ${name}.` }], isError: true }
   try {
-    const out = await t.run(args || {})
-    const { text, data } = typeof out === 'string' ? { text: out } : out
-    return { content: [{ type: 'text', text }], ...(data ? { structuredContent: data } : {}) }
+    // Text only: Claude Code gives the model a tool's structuredContent in place of its
+    // text when a tool returns both, and every answer here is written to be read.
+    return { content: [{ type: 'text', text: await t.run(args || {}) }] }
   } catch (e) {
     if (e instanceof Note || e instanceof Offline) return { content: [{ type: 'text', text: e.message }], isError: e instanceof Offline }
     process.stderr.write(`prep-room: ${name} failed: ${e?.stack || e}\n`)

@@ -1,7 +1,6 @@
 // The Prep Room mod for Claude Code: the question pane beside the transcript, the band
-// above the prompt (the mode, the time left, Run and Submit), a status line entry, the
-// solo guard on Claude's edits, and the log of a mock interview or assisted round. It
-// draws in the terminal, the Desktop app's Code tab and VS Code. Everything it knows
+// above the prompt (the mode, the time left, Run and Submit), the solo guard on Claude's
+// edits, and the log of a mock interview or assisted round. It draws in the terminal, the Desktop app's Code tab and VS Code. Everything it knows
 // comes from the plugin's own tools and prep/<id>/.preproom.json: it stores nothing
 // anywhere else and sends nothing anywhere.
 import { atom, read, update } from 'claude-code'
@@ -93,13 +92,6 @@ function timeLeft(q: PreproomCurrent, now: number): string {
   return `${Math.max(1, Math.round(-left / 60_000))} min over`
 }
 
-async function refreshStatus($: Engine) {
-  const q = await read($, current)
-  if (!q) { $.ui.status(undefined); return }
-  const left = timeLeft(q, await $.clock.now())
-  $.ui.status(`Prep Room · ${q.id} · ${MODE[q.mode]}${left ? ` · ${left}` : ''}`)
-}
-
 async function note($: Engine, at: number, what: string) {
   const q = await read($, current)
   if (!q || (q.mode !== 'round' && q.mode !== 'mock')) return
@@ -155,7 +147,6 @@ async function afterTool($: Engine, name: string, text: string) {
     if (url) await update($, link, () => url)
     await note($, now, 'Took the answer to preproom.ai')
   }
-  await refreshStatus($)
 }
 
 /** Calls one of the plugin's own tools from the pane or the band. */
@@ -211,11 +202,7 @@ export const register: Register = (on) => {
     await $.command.register({ name: 'prep', description: 'Show the Prep Room pane' }).catch(() => {})
     const q = await loadCurrent($).catch(() => null)
     await update($, current, () => q)
-    await refreshStatus($)
-    $.clock.every(30_000, () => {
-      void update($, tick, (n) => (n ?? 0) + 1)
-      void refreshStatus($)
-    })
+    $.clock.every(30_000, () => { void update($, tick, (n) => (n ?? 0) + 1) })
     return next(e)
   })
 
@@ -223,7 +210,7 @@ export const register: Register = (on) => {
     const q = await loadCurrent($).catch(() => null)
     if (q) await update($, current, () => q)
     const opened = await $.ui.open({ id: PANE, title: 'Prep Room' })
-    if (!opened.isPlaced) return { text: q ? `Prep Room: ${q.title}. The pane cannot show here (${opened.reason}); the status line keeps the time.` : 'No question is set up yet. Ask Claude for one, or run /preproom:practice.' }
+    if (!opened.isPlaced) return { text: q ? `Prep Room: ${q.title}. The pane cannot show here (${opened.reason}); the band above the prompt keeps the time.` : 'No question is set up yet. Ask Claude for one, or run /preproom:practice.' }
     return { text: q ? 'The Prep Room pane is open.' : 'The Prep Room pane is open. Ask Claude for a question, or run /preproom:practice.' }
   })
 
@@ -305,6 +292,13 @@ export const register: Register = (on) => {
           <Text dimColor wrap="wrap">{q.meta}</Text>
           <Text dimColor>{MODE[q.mode]}{left ? ` · ${left}` : ''}</Text>
         </Box>
+        <Box flexDirection="row" gap={1} flexWrap="wrap">
+          <Button key="pane-run" label="Run" variant="primary" onPress={() => void pressRun($)} />
+          <Button key="pane-submit" label="Submit on preproom.ai" onPress={() => void pressSubmit($)} />
+          {q.mode === 'solo' ? <Button key="pane-back" label="Hand it back" onPress={() => void pressMode($, 'open', 'The person handed the answer file back: help however they ask.')} /> : null}
+        </Box>
+        {working ? <Text dimColor>{working}</Text> : null}
+        {url ? <Link href={url} label="Open it on preproom.ai, with your code" /> : null}
         <Box flexDirection="row" gap={2}>
           {tabButton('task', 'Task')}
           {tabButton('hints', 'Hints')}
@@ -313,7 +307,7 @@ export const register: Register = (on) => {
         {view === 'task' ? <Markdown key="task" text={q.task || `The task is in ${q.dir}/README.md.`} /> : null}
         {view === 'hints' ? (
           <Box flexDirection="column" gap={1}>
-            {shown.length ? shown.map((h) => <Text key={`hint-${h.number}`} wrap="wrap"><Text color="success" bold>Hint {String(h.number)} </Text>{h.text}</Text>) : <Text dimColor>No hints yet. Each one gives away a little more.</Text>}
+            {shown.length ? shown.map((hint) => <Text key={`hint-${hint.number}`} wrap="wrap"><Text color="success" bold>Hint {String(hint.number)} </Text>{hint.text}</Text>) : <Text dimColor>No hints yet. Each one gives away a little more.</Text>}
             <Box><Button key="next-hint" label={shown.length ? 'Next hint' : 'First hint'} onPress={() => void pressHint($)} /></Box>
           </Box>
         ) : null}
@@ -322,13 +316,6 @@ export const register: Register = (on) => {
             {last ? last.lines.map((l, i) => <Text key={`run-${i}`} wrap="wrap" color={/\bpass\b|The examples pass|rows match/.test(l) ? 'success' : /does not match|raises|differs/.test(l) ? 'warning' : undefined} dimColor={/^\s/.test(l)}>{l}</Text>) : <Text dimColor>Run tries the examples on this computer. The hidden checks are on preproom.ai.</Text>}
           </Box>
         ) : null}
-        {working ? <Text dimColor>{working}</Text> : null}
-        <Box flexDirection="row" gap={1} flexWrap="wrap">
-          <Button key="pane-run" label="Run" variant="primary" onPress={() => void pressRun($)} />
-          <Button key="pane-submit" label="Submit on preproom.ai" onPress={() => void pressSubmit($)} />
-          {q.mode === 'solo' ? <Button key="pane-back" label="Hand it back" onPress={() => void pressMode($, 'open', 'The person handed the answer file back: help however they ask.')} /> : null}
-        </Box>
-        {url ? <Link href={url} label="Open it on preproom.ai, with your code" /> : null}
       </Box>
     )
   })

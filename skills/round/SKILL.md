@@ -1,12 +1,16 @@
 ---
 name: round
 description: Use when someone wants to practice an AI-assisted interview round, where the candidate works with an AI assistant, such as "assisted round", "AI-assisted interview", "practice coding with an AI like the new interviews", "Meta style AI round". Runs a Prep Room question with Claude as the assistant and the person leading, then reads the round back.
-allowed-tools: ["mcp__plugin_preproom_prep-room__*", "Read", "Glob", "Edit", "Write", "Bash"]
+allowed-tools: ["mcp__plugin_preproom_prep-room__*", "Read", "Glob"]
 ---
 
 # Run an assisted round
 
 More interviews now let candidates work with an AI assistant. What gets judged is how they lead it: how they frame the work, how they check what it writes, and what they accept or turn down. In this round you are that assistant.
+
+## In Claude chat
+
+This plugin's local tools run in Claude Code only. If `start_question` is not available, you are in chat, so run the round in the conversation with the Prep Room connector's tools if they are there: `find_questions`, `get_question`, `get_model_answer` and `make_site_link`. Write the code they ask for in your replies. There is no log and nothing runs here, so read the round back from the conversation, and use `make_site_link` in place of `submit_on_site`: the examples and the hidden checks run on preproom.ai. If those are not there either, say that Prep Room needs its connector in chat, at `https://preproom.ai/api/claude/mcp`, added in Settings under Connectors. Then stop.
 
 ## Start
 

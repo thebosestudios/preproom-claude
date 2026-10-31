@@ -1,4 +1,4 @@
-Copyright (c) 2026 Prep Room. All rights reserved.
+Copyright (c) 2026 Bose Ventures LLC. All rights reserved.
 
 This software is proprietary. It is made available for use with the Prep Room
 service and may not be copied, modified, distributed or reverse engineered

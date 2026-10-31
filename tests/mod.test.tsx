@@ -7,7 +7,7 @@ const saved = (mode: string) => JSON.stringify({
 })
 const README = '# Count the days until a warmer day\n\nWrite code · Medium · 20 min\n\nA weather app shows how long you wait for warmer weather.\n\n## How this works\n\n- Write your answer in solution.py.\n'
 
-function project(on: Parameters<Parameters<typeof test>[1]>[1], mode: string, writes: Record<string, string> = {}) {
+function project(on: Parameters<Parameters<typeof test>[1]>[1], mode: string, writes: Record<string, string> = {}, toolText = '') {
   on('command.register', () => ({ value: { command: 'prep' } }))
   on('ui.open', () => ({ value: { isPlaced: true } }))
   on('session.start', (_, e) => ({ cwd: e.cwd }))
@@ -20,11 +20,10 @@ function project(on: Parameters<Parameters<typeof test>[1]>[1], mode: string, wr
     throw new Error('missing')
   })
   on('fs.write', (_, e) => { const w = e as { path?: unknown; text?: unknown }; writes[String(w.path)] = String(w.text); return { value: undefined } })
-  on('tool.call', () => ({ result: {} }))
+  on('tool.call', () => ({ result: {}, text: toolText }))
   on('prompt.submit', (_, e) => ({ text: (e as { text: string }).text }))
   on('clock.now', () => ({ value: Date.now() }))
   on('clock.every', () => ({ value: {} }))
-  on('ui.status', () => ({ value: undefined }))
 }
 
 const BAND = { plugin: 'preproom', component: 'AbovePrompt', props: { hasSurvey: false, bodyColumns: 100 } } as const
@@ -88,5 +87,18 @@ test('with no question, the pane says how to get one', async ($, on) => {
   on('fs.list', () => { throw new Error('missing') })
   const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
   expect((await ui.find({ type: 'Text', text: /No question yet/ }))?.text).toBe('No question yet')
+  await ui.unmount()
+})
+
+test('a hint Claude opens reaches the pane and the round log', async ($, on) => {
+  const writes: Record<string, string> = {}
+  project(on, 'round', writes, 'Hint 1: Walk the list from the right.\n\nThere is another hint after this one.')
+  await $.session.start({ cwd: '/proj', surface: 'terminal', isInteractive: true })
+
+  await $.tool.call({ tool: 'mcp__plugin_preproom_prep-room__get_hint' })
+  expect(writes['/proj/prep/cod-g100/.round/log.jsonl'] ?? '').toMatch(/Hint 1 opened/)
+
+  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  expect((await ui.find({ type: 'Text', text: /Walk the list from the right/ }))?.text).toMatch(/Walk the list/)
   await ui.unmount()
 })

@@ -7,8 +7,7 @@ It is free and needs no account.
 ## Install
 
 ```
-/plugin marketplace add thebosestudios/preproom-claude
-/plugin install preproom@preproom
+/plugin install preproom --marketplace thebosestudios/preproom-claude
 ```
 
 You need Node.js 20 or later on your PATH. The plugin has nothing else to install.
@@ -65,6 +64,12 @@ Claude on the web, in the Desktop app and on your phone can use Prep Room too, a
 https://preproom.ai/api/claude/mcp
 ```
 
+Commands such as `/preproom:practice` work there through this connector. The files, local runs and the pane are Claude Code's.
+
+## Support
+
+Questions, problems or a security concern: support@preproom.ai, or https://preproom.ai/contact.
+
 ## Settings
 
 | Variable | Default | What it does |
@@ -75,6 +80,6 @@ https://preproom.ai/api/claude/mcp
 ## Working on the plugin
 
 - `server/` is the plugin's MCP server: plain Node, no dependencies.
-- `server/engine.mjs` is generated from Prep Room's language engine. Rebuild it with `node scripts/build-engine.mjs /path/to/preproom` after the site's `lib/run` changes.
-- `hooks/register.tsx` is the pane, the band, the status line and the solo guard.
-- `npm test` runs the server's tests.
+- `server/engine/` is generated from Prep Room's language engine. Rebuild it with `node scripts/build-engine.mjs /path/to/preproom` after the site's `lib/run` changes.
+- `hooks/register.tsx` is the pane, the band and the solo guard.
+- `npm test` runs the server's tests, and `claude plugin test .` runs the mod's.

@@ -9,6 +9,8 @@ allowed-tools: ["mcp__plugin_preproom_prep-room__*"]
 1. Call `find_guides` with what they asked about, or with the question id when it comes from a question. If several fit, name them in one line each and let them choose.
 2. Call `read_guide` for the first section. Explain it in your own words, short, and check they follow before the next section.
 3. Go section by section. Use the guide's own examples. The guide's link has its pictures.
-4. At the end, offer one of the questions the guide teaches, from `find_questions` or the guide's own list, and set it up with `start_question` if they want it.
+4. At the end, offer one of the questions the guide teaches, from `find_questions` or the guide's own list, and set it up with `start_question` if they want it. In Claude chat, where `start_question` is not available, show it with `get_question`.
 
 Teach the idea, not the answer to a question they are working on in solo mode.
+
+If `find_guides` is not available in Claude chat, say that Prep Room needs its connector there, at `https://preproom.ai/api/claude/mcp`, added in Settings under Connectors. Then stop.

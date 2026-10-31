@@ -2,7 +2,7 @@
 // preproom.ai, so nothing here reaches the network. Run with `npm test`.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { cpSync, mkdtempSync, readFileSync, writeFileSync, existsSync } from 'node:fs'
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, statSync, writeFileSync, existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -144,17 +144,16 @@ test('a whole practice: start, run, hint, and the link that carries the code', {
   try {
     const started = await s.call('start_question', { id: 'cod-g100', language: 'Python' })
     assert.match(started.content[0].text, /prep\/cod-g100\/ is ready/)
-    assert.equal(started.structuredContent.state.mode, 'solo')
+    assert.match(started.content[0].text, /Mode: Solo/)
     assert.match((await s.call('run_examples')).content[0].text, /still holds the starter/)
     writeFileSync(join(cwd, 'prep/cod-g100/solution.py'), STACK_PY)
     const ran = await s.call('run_examples')
     assert.match(ran.content[0].text, /The examples pass/)
-    assert.equal(ran.structuredContent.status, 'pass')
     const h1 = await s.call('get_hint')
     const h2 = await s.call('get_hint')
     assert.match(h1.content[0].text, /^Hint 1:/)
     assert.match(h2.content[0].text, /^Hint 2:/)
-    const link = (await s.call('submit_on_site')).structuredContent.url
+    const link = (await s.call('submit_on_site')).content[0].text.match(/https:\S+#code=\S+/)[0]
     const frag = new URLSearchParams(link.split('#')[1])
     assert.equal(Buffer.from(frag.get('code'), 'base64url').toString('utf8'), STACK_PY)
     assert.equal(frag.get('lang'), 'python')
@@ -163,4 +162,53 @@ test('a whole practice: start, run, hint, and the link that carries the code', {
     assert.match(missing.content[0].text, /No question has the id "nope-1"/)
     assert.ok(existsSync(join(cwd, 'prep/cod-g100/.preproom.json')))
   } finally { s.close() }
+})
+
+// A client may hand the model structuredContent in place of the text (Claude Code does),
+// so the text has to be the whole answer and nothing else may be sent beside it.
+test('every answer is plain text, and the text holds all of it', { skip: !which('python3') && 'no python3' }, async () => {
+  const cwd = mkdtempSync(join(tmpdir(), 'preproom-proj-'))
+  const s = server(cwd)
+  const call = async (name, args) => {
+    const r = await s.call(name, args)
+    assert.deepEqual(Object.keys(r).filter((k) => k !== 'isError'), ['content'], name)
+    assert.equal(r.content[0].type, 'text', name)
+    return r.content[0].text
+  }
+  try {
+    assert.match(await call('start_question', { id: 'cod-g100', language: 'Python', mode: 'round' }), /you are their assistant/)
+    writeFileSync(join(cwd, 'prep/cod-g100/solution.py'), STACK_PY.replace('< t', '<= t').replace('    ans = [0]', '    print("looking")\n    ans = [0]'))
+    const failed = await call('run_examples')
+    assert.match(failed, /does not match/)
+    assert.match(failed, /expected \[1, 1, 0\]|expected /)
+    assert.match(failed, /got {6}\[/)
+    assert.match(failed, /What it printed:\n[\s\S]*looking/)
+    assert.match(await call('get_hint'), /^Hint 1: /)
+    assert.match(await call('set_mode', { mode: 'round' }), /You are their assistant/)
+    mkdirSync(join(cwd, 'prep/cod-g100/.round'), { recursive: true })
+    writeFileSync(join(cwd, 'prep/cod-g100/.round/log.jsonl'), JSON.stringify({ at: Date.now() + 1000, what: 'You: "start with a stack"' }) + '\n')
+    const ended = await call('end_round')
+    assert.match(ended, /You: "start with a stack"/)
+    assert.match(ended, /Direction[\s\S]*Verification[\s\S]*Judgment/)
+  } finally { s.close() }
+})
+
+test('the package is what the directory asks for', () => {
+  const root = join(here, '..')
+  const LIMIT = 256 * 1024
+  const walk = (dir) => readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+    if (['.git', 'types', 'node_modules'].includes(e.name) && dir !== join(root, 'types')) return []
+    return e.isDirectory() ? walk(join(dir, e.name)) : [join(dir, e.name)]
+  })
+  for (const f of walk(root)) {
+    if (/\.(png|jpe?g|gif|webp|woff2?|ttf|otf)$/i.test(f)) continue
+    assert.ok(statSync(f).size < LIMIT, `${f} is over 256 KiB, so the directory would hold it for a reviewer`)
+  }
+  for (const skill of readdirSync(join(root, 'skills'))) {
+    const text = readFileSync(join(root, 'skills', skill, 'SKILL.md'), 'utf8')
+    const allowed = /^allowed-tools: (.*)$/m.exec(text)[1]
+    for (const tool of ['Bash', 'Edit', 'Write', 'Task', 'Agent']) assert.ok(!allowed.includes(`"${tool}"`), `${skill} pre-approves ${tool}`)
+    assert.match(text, /Claude chat/, `${skill} does not say what to do in chat`)
+  }
+  assert.match(readFileSync(join(root, 'README.md'), 'utf8'), /support@preproom\.ai/)
 })

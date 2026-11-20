@@ -1,6 +1,8 @@
 // The Prep Room mod for Claude Code: the question pane beside the transcript, the band
 // above the prompt (the mode, the time left, Run and Submit), the solo guard on Claude's
-// edits, and the log of a mock interview or assisted round. It draws in the terminal, the Desktop app's Code tab and VS Code. Everything it knows
+// edits, and the log of a mock interview or assisted round. The pane draws in the terminal,
+// the Desktop app's Code tab and VS Code; the band only where Claude Code raises one (the
+// terminal and the Desktop app, not the VS Code panel), so the pane carries Run and Submit too. Everything it knows
 // comes from the plugin's own tools and prep/<id>/.preproom.json: it stores nothing
 // anywhere else and sends nothing anywhere.
 import { atom, read, update } from 'claude-code'

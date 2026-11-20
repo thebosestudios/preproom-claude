@@ -32,7 +32,7 @@ A question lands in `prep/<id>/` in your project:
 
 **Run** tries the examples on this computer with its own toolchain. **Submit** gives you a link that opens the question on preproom.ai with your answer already in the editor. The hidden checks run there, and a free account keeps your progress.
 
-Beside the conversation, the Prep Room pane shows the task, your hints and your last run. A band above the prompt shows the mode and the time left, with Run and Submit. Type `/prep` to bring the pane back. The pane and band work in the terminal, in the Claude Code panel in VS Code and in the Desktop app's Code tab.
+Beside the conversation, the Prep Room pane shows the task, your hints and your last run. A band above the prompt shows the mode and the time left, with Run and Submit. Type `/prep` to bring the pane back. The pane works in the terminal, in the Claude Code panel in VS Code and in the Desktop app's Code tab. The band shows in the terminal and the Desktop app; in the VS Code panel, Run and Submit are in the pane.
 
 ### Modes
 

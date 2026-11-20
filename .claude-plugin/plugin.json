@@ -10,5 +10,8 @@
   "repository": "https://github.com/thebosestudios/preproom-claude",
   "license": "SEE LICENSE IN LICENSE.txt",
   "keywords": ["interview", "interview-prep", "coding-interview", "system-design", "ai-assisted-engineering", "practice"],
-  "types": "./types/index.d.ts"
+  "types": "./types/index.d.ts",
+  "network": {
+    "hosts": ["preproom.ai"]
+  }
 }

@@ -1,4 +1,4 @@
-import { expect, test } from 'claude-code/testing'
+import { expect, test, type TestBody } from 'claude-code/testing'
 
 // One question set up in /proj, as the plugin's start_question leaves it.
 const saved = (mode: string) => JSON.stringify({
@@ -7,7 +7,7 @@ const saved = (mode: string) => JSON.stringify({
 })
 const README = '# Count the days until a warmer day\n\nWrite code · Medium · 20 min\n\nA weather app shows how long you wait for warmer weather.\n\n## How this works\n\n- Write your answer in solution.py.\n'
 
-function project(on: Parameters<Parameters<typeof test>[1]>[1], mode: string, writes: Record<string, string> = {}, toolText = '') {
+function project(on: Parameters<TestBody>[1], mode: string, writes: Record<string, string> = {}, toolText = '') {
   on('command.register', () => ({ value: { command: 'prep' } }))
   on('ui.open', () => ({ value: { isPlaced: true } }))
   on('session.start', (_, e) => ({ cwd: e.cwd }))
@@ -23,10 +23,10 @@ function project(on: Parameters<Parameters<typeof test>[1]>[1], mode: string, wr
   on('tool.call', () => ({ result: {}, text: toolText }))
   on('prompt.submit', (_, e) => ({ text: (e as { text: string }).text }))
   on('clock.now', () => ({ value: Date.now() }))
-  on('clock.every', () => ({ value: {} }))
+  on('clock.every', () => ({ value: undefined }))
 }
 
-const BAND = { plugin: 'preproom', component: 'AbovePrompt', props: { hasSurvey: false, bodyColumns: 100 } } as const
+const BAND = { plugin: 'preproom', component: 'AbovePrompt', props: { hasSurvey: false, isCollapsed: false, isWorking: false, maxRows: 10, bodyColumns: 100, scroll: { offset: 0, bodyRows: 9 }, view: {} } } as const
 const PANE = { plugin: 'preproom', component: 'Pane', requestId: 'prep-room', props: { title: 'Prep Room', isFocused: false, bodyColumns: 48, placement: 'dock', scroll: { offset: 0, bodyRows: 30 }, view: {} } } as const
 
 test('in solo mode Claude cannot edit the answer file, and can edit anything else', async ($, on) => {
@@ -47,7 +47,7 @@ test('in an assisted round Claude may edit the answer file, and the round log ke
 
   const ran = await $.tool.call({ tool: 'Edit', file_path: '/proj/prep/cod-g100/solution.py', old_string: 'pass', new_string: 'return []' })
   expect(ran.deny).toBeUndefined()
-  await $.prompt.submit({ text: 'Walk back from the newest send' })
+  await $.prompt.submit({ text: 'Walk back from the newest send', wait: false, origin: { kind: 'composer' } })
 
   const logged = writes['/proj/prep/cod-g100/.round/log.jsonl'] ?? ''
   expect(logged).toMatch(/Claude edited solution\.py/)
